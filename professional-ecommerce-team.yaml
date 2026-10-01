@@ -39,13 +39,13 @@ pods:
     label: Quality Assurance
     members:
       - id: qa_engineer
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/qa"
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/testing/qa_engineer"
         runtime: codex
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
       - id: security_analyst
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/security_analyst"
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/testing/security_analyst"
         runtime: claude-code
         model: auto
         profile: default
