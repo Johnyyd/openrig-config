@@ -1,9 +1,9 @@
 name: implementer
 version: "1.0"
-description: "Implementation agent — writes code following TDD discipline"
+description: "Implementation agent"
 
 defaults:
-  runtime: claude-code
+  runtime: codex
 
 profiles:
   default:
@@ -13,14 +13,6 @@ profiles:
       subagents: []
       plugins: []
       runtime_resources: []
-
-resources:
-  guidance:
-    - id: role
-      path: guidance/role.md
-
-startup:
-  files:
-    - path: guidance/role.md
-      delivery_hint: send_text
-      required: true
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []

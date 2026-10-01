@@ -13,3 +13,6 @@ profiles:
       subagents: []
       plugins: []
       runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []

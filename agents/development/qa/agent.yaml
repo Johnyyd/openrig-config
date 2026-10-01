@@ -1,6 +1,6 @@
 name: qa
 version: "1.0"
-description: "QA agent — verifies assigned user outcomes by effect"
+description: "QA agent"
 
 defaults:
   runtime: codex
@@ -13,3 +13,6 @@ profiles:
       subagents: []
       plugins: []
       runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []

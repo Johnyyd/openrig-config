@@ -1,6 +1,6 @@
 name: documentation
 version: "1.0"
-description: "Documentation Writer agent for updating documentation"
+description: "Documentation Writer agent"
 
 defaults:
   runtime: codex
@@ -13,3 +13,6 @@ profiles:
       subagents: []
       plugins: []
       runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []

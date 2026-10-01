@@ -1,6 +1,6 @@
 name: performance
 version: "1.0"
-description: "Performance Analyst agent for optimizing application performance"
+description: "Performance Analyst agent"
 
 defaults:
   runtime: codex
@@ -13,3 +13,6 @@ profiles:
       subagents: []
       plugins: []
       runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []

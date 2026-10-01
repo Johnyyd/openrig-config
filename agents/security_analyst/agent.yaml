@@ -1,6 +1,6 @@
 name: security_analyst
 version: "1.0"
-description: "Security Analyst agent for security reviews"
+description: "Security Analyst agent"
 
 defaults:
   runtime: codex
@@ -13,3 +13,6 @@ profiles:
       subagents: []
       plugins: []
       runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []
