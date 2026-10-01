@@ -8,7 +8,7 @@ pods:
     members:
       - id: product_owner
         agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/product_owner"
-        runtime: codex
+        runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
@@ -18,19 +18,19 @@ pods:
     members:
       - id: developer_owner
         agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/implementer/implementer"
-        runtime: codex
+        runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
       - id: developer_backend
         agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/backend"
-        runtime: codex
+        runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce/backend"
       - id: developer_frontend
         agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/frontend"
-        runtime: codex
+        runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce/frontend"
@@ -46,7 +46,7 @@ pods:
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
       - id: security_analyst
         agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/security_analyst"
-        runtime: codex
+        runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
@@ -62,7 +62,7 @@ pods:
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
       - id: devops_architect
         agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/devops/architect"
-        runtime: codex
+        runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
@@ -72,13 +72,13 @@ pods:
     members:
       - id: documentation_writer
         agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/documentation"
-        runtime: codex
+        runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
       - id: tech_writer
         agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/documentation/tech-writer"
-        runtime: codex
+        runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
@@ -88,7 +88,7 @@ pods:
     members:
       - id: performance_analyst
         agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/performance/analyst"
-        runtime: codex
+        runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
