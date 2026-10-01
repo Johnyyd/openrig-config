@@ -1,9 +1,9 @@
-name: devops
+name: implementer
 version: "1.0"
-description: "DevOps Engineer agent"
+description: "Implementation agent"
 
 defaults:
-  runtime: codex
+  runtime: claude-code
 
 profiles:
   default:

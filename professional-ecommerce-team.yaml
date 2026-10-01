@@ -34,7 +34,18 @@ pods:
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce/frontend"
-
+      - id: developer_qa
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/qa"
+        runtime: codex
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
+      - id: developer_implementer
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/implementer"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
   - id: testing
     label: Quality Assurance
     members:
