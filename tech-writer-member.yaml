@@ -1,6 +1,0 @@
-id: tech_writer
-agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/documentation/tech-writer"
-runtime: codex
-model: auto
-profile: default
-cwd: "/home/tringuyen/Documents/GitHub/ecommerce"

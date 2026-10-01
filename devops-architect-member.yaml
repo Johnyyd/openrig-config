@@ -1,6 +1,0 @@
-id: devops_architect
-agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/devops/architect"
-runtime: codex
-model: auto
-profile: default
-cwd: "/home/tringuyen/Documents/GitHub/ecommerce"

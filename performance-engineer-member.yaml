@@ -1,6 +1,0 @@
-id: performance_engineer
-agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/performance/engineer"
-runtime: codex
-model: auto
-profile: default
-cwd: "/home/tringuyen/Documents/GitHub/ecommerce"

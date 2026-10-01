@@ -55,7 +55,13 @@ pods:
     label: DevOps
     members:
       - id: devops_engineer
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/devops"
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/devops/engineer"
+        runtime: codex
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
+      - id: devops_architect
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/devops/architect"
         runtime: codex
         model: auto
         profile: default
@@ -70,12 +76,24 @@ pods:
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
+      - id: tech_writer
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/documentation/tech-writer"
+        runtime: codex
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
 
   - id: performance
     label: Performance
     members:
       - id: performance_analyst
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/performance"
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/performance/analyst"
+        runtime: codex
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
+      - id: performance_engineer
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/performance/engineer"
         runtime: codex
         model: auto
         profile: default
