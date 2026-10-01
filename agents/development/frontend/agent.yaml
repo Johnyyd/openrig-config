@@ -1,0 +1,15 @@
+name: frontend
+version: "1.0"
+description: "Frontend development agent"
+
+defaults:
+  runtime: codex
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []

@@ -1,0 +1,26 @@
+name: product_owner
+version: "1.0"
+description: "Product Owner agent for managing requirements and backlog"
+
+defaults:
+  runtime: codex
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
+
+resources:
+  guidance:
+    - id: role
+      path: guidance/product_owner_role.md
+
+startup:
+  files:
+    - path: guidance/product_owner_role.md
+      delivery_hint: send_text
+      required: true

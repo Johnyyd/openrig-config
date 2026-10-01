@@ -1,0 +1,15 @@
+name: security_analyst
+version: "1.0"
+description: "Security Analyst agent for security reviews"
+
+defaults:
+  runtime: codex
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
