@@ -1,6 +1,6 @@
 version: "0.2"
 name: professional-ecommerce-team
-summary: "A professional ecommerce development team with multiple roles"
+summary: "A professional ecommerce development team"
 
 pods:
   - id: product
@@ -89,9 +89,6 @@ edges:
     from: development.developer_owner
     to: testing.qa_engineer
   - kind: delegates_to
-    from: development.developer_owner
-    to: devops.devops_engineer
-  - kind: delegates_to
     from: testing.qa_engineer
     to: devops.devops_engineer
   - kind: delegates_to
@@ -102,7 +99,4 @@ edges:
     to: documentation.documentation_writer
   - kind: delegates_to
     from: development.developer_owner
-    to: performance.performance_analyst
-  - kind: delegates_to
-    from: testing.qa_engineer
     to: performance.performance_analyst
