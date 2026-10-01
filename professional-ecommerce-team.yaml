@@ -7,7 +7,7 @@ pods:
     label: Product Management
     members:
       - id: product_owner
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/product_owner"
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/product/product_owner"
         runtime: claude-code
         model: auto
         profile: default
@@ -81,7 +81,7 @@ pods:
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
       - id: compliance_officer
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/compliance_officer"
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/testing/compliance_officer"
         runtime: claude-code
         model: auto
         profile: default
@@ -107,7 +107,7 @@ pods:
     label: Documentation
     members:
       - id: documentation_writer
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/documentation"
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/documentation/documentation_writer"
         runtime: claude-code
         model: auto
         profile: default
@@ -136,6 +136,21 @@ pods:
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
       - id: performance_data_analyst
         agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/performance/data_analyst"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
+
+  - id: security
+    members:
+      - id: security_analyst
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/security/security_analyst"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
+      - id: security_auditor
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/security/security_auditor"
         runtime: claude-code
         model: auto
         profile: default
