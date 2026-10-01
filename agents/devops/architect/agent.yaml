@@ -1,0 +1,18 @@
+name: devops-architect
+version: "1.0"
+description: "DevOps Architect agent for designing infrastructure and architecture"
+
+defaults:
+  runtime: codex
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []

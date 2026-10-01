@@ -1,0 +1,18 @@
+name: devops-engineer
+version: "1.0"
+description: "DevOps Engineer agent for managing CI/CD and infrastructure"
+
+defaults:
+  runtime: codex
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []

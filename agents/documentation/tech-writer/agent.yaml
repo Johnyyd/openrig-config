@@ -1,0 +1,18 @@
+name: tech-writer
+version: "1.0"
+description: "Technical Writer agent for documentation"
+
+defaults:
+  runtime: codex
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []
