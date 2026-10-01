@@ -1,0 +1,18 @@
+name: developer_payment
+version: "1.0"
+description: "Payment Gateway Specialist agent for secure payment integration"
+
+defaults:
+  runtime: claude-code
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []

@@ -1,0 +1,18 @@
+name: product_inventory_manager
+version: "1.0"
+description: "Product Inventory Manager agent for stock management and supply chain"
+
+defaults:
+  runtime: codex
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []

@@ -1,0 +1,18 @@
+name: performance_data_analyst
+version: "1.0"
+description: "Data Analyst agent for performance metrics and business intelligence"
+
+defaults:
+  runtime: claude-code
+
+profiles:
+  default:
+    uses:
+      skills: []
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
+    permission_policy:
+      launch_posture: "floor"
+      permissions: []
