@@ -74,14 +74,24 @@ pods:
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
-      - id: security_analyst
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/testing/security_analyst"
+      - id: compliance_officer
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/testing/compliance_officer"
         runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
-      - id: compliance_officer
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/testing/compliance_officer"
+
+  - id: security
+    label: Security
+    members:
+      - id: security_analyst
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/security/security_analyst"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
+      - id: security_auditor
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/security/security_auditor"
         runtime: claude-code
         model: auto
         profile: default
@@ -141,16 +151,53 @@ pods:
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
 
-  - id: security
+  - id: factory-rsi
+    label: Factory RSI
     members:
-      - id: security_analyst
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/security/security_analyst"
+      - id: factory_rsi_dogfood
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/factory-rsi/dogfood"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitGB/ecommerce"
+      - id: factory_rsi_release_manager
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/factory-rsi/release-manager"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitGB/ecommerce"
+
+  - id: orchestration
+    label: Orchestration
+    members:
+      - id: orchestration_orchestrator
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/orchestration/orchestrator"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitGB/ecommerce"
+
+  - id: research
+    label: Research
+    members:
+      - id: research_analyst
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/research/analyst"
         runtime: claude-code
         model: auto
         profile: default
         cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
-      - id: security_auditor
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/security/security_auditor"
+      - id: research_synthesizer
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/research/synthesizer"
+        runtime: codex
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitHub/ecommerce"
+
+  - id: review
+    label: Review
+    members:
+      - id: review_independent
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/review/independent-reviewer"
         runtime: claude-code
         model: auto
         profile: default
@@ -207,10 +254,13 @@ edges:
     to: documentation.tech_writer
   - kind: delegates_to
     from: testing.qa_engineer
-    to: testing.security_analyst
-  - kind: delegates_to
-    from: testing.security_analyst
     to: testing.compliance_officer
+  - kind: delegates_to
+    from: development.developer_owner
+    to: security.security_analyst
+  - kind: delegates_to
+    from: security.security_analyst
+    to: security.security_auditor
   - kind: delegates_to
     from: devops.devops_engineer
     to: devops.devops_architect
@@ -220,3 +270,21 @@ edges:
   - kind: delegates_to
     from: performance.performance_analyst
     to: performance.performance_engineer
+  - kind: delegates_to
+    from: factory-rsi.factory_rsi_dogfood
+    to: factory-rsi.factory_rsi_release_manager
+  - kind: delegates_to
+    from: factory-rsi.factory_rsi_release_manager
+    to: orchestration.orchestration_orchestrator
+  - kind: delegates_to
+    from: orchestration.orchestration_orchestrator
+    to: research.research_analyst
+  - kind: delegates_to
+    from: research.research_analyst
+    to: research.research_synthesizer
+  - kind: delegates_to
+    from: research.research_synthesizer
+    to: review.review_independent
+  - kind: delegates_to
+    from: review.review_independent
+    to: development.developer_owner
