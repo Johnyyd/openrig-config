@@ -5,14 +5,32 @@ description: "UI/UX Designer agent for user interface and experience design"
 defaults:
   runtime: claude-code
 
+imports:
+  - ref: local:../../shared
+
 profiles:
   default:
     uses:
       skills: []
       guidance: []
       subagents: []
-      plugins: []
-      runtime_resources: []
-    permission_policy:
-      launch_posture: "floor"
-      permissions: []
+      plugins: [shared:openrig-core]
+      runtime_resources:
+        [
+          shared:claude-default-settings,
+          shared:claude-default-mcp,
+          shared:claude-code-default-config,
+          shared:claude-activity-hooks,
+        ]
+
+resources:
+  guidance:
+    - id: role
+      path: guidance/role.md
+
+startup:
+  files:
+    - path: guidance/role.md
+      delivery_hint: send_text
+      required: true
+  actions: []

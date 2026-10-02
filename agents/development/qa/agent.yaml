@@ -1,9 +1,12 @@
-name: qa
+name: developer_qa
 version: "1.0"
 description: "QA agent"
 
 defaults:
   runtime: claude-code
+
+imports:
+  - ref: local:../../shared
 
 profiles:
   default:
@@ -11,8 +14,23 @@ profiles:
       skills: []
       guidance: []
       subagents: []
-      plugins: []
-      runtime_resources: []
-    permission_policy:
-      launch_posture: "floor"
-      permissions: []
+      plugins: [shared:openrig-core]
+      runtime_resources:
+        [
+          shared:claude-default-settings,
+          shared:claude-default-mcp,
+          shared:claude-code-default-config,
+          shared:claude-activity-hooks,
+        ]
+
+resources:
+  guidance:
+    - id: role
+      path: guidance/role.md
+
+startup:
+  files:
+    - path: guidance/role.md
+      delivery_hint: send_text
+      required: true
+  actions: []

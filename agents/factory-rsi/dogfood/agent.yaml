@@ -1,4 +1,4 @@
-name: factory-rsi-dogfood
+name: factory_rsi_dogfood
 version: "1.0"
 description: Dogfood agent — continuously uses the SHIPPED product out-of-band and records findings that feed the next RSI plan cycle
 

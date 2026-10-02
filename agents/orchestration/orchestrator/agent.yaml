@@ -1,4 +1,4 @@
-name: orchestrator
+name: orchestration_orchestrator
 version: "1.0"
 description: Orchestrator lead — coordinates agents, monitors progress, bridges communication
 

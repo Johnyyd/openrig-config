@@ -29,7 +29,7 @@ pods:
     label: Development Owner
     members:
       - id: developer_owner
-        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/implementer"
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/owner"
         runtime: claude-code
         model: auto
         profile: default

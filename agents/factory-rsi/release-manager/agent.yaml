@@ -1,4 +1,4 @@
-name: factory-rsi-release-manager
+name: factory_rsi_release_manager
 version: "1.0"
 description: Release-manager agent — prepares the release (notes, docs, PR) and holds the ship decision at the human gate
 
