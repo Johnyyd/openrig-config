@@ -3,7 +3,7 @@ version: "1.0"
 description: "Performance Engineer agent for optimizing application performance"
 
 defaults:
-  runtime: codex
+  runtime: claude-code
 
 profiles:
   default:

@@ -15,7 +15,13 @@ profiles:
       guidance: []
       subagents: []
       plugins: [shared:openrig-core]
-      runtime_resources: [shared:claude-default-settings, shared:claude-default-mcp, shared:codex-default-config, shared:claude-activity-hooks]
+      runtime_resources:
+        [
+          shared:claude-default-settings,
+          shared:claude-default-mcp,
+          shared:claude-code-default-config,
+          shared:claude-activity-hooks,
+        ]
 
 resources:
   guidance:

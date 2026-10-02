@@ -11,11 +11,18 @@ imports:
 profiles:
   default:
     uses:
-      skills: [review-team, systematic-debugging, verification-before-completion]
+      skills:
+        [review-team, systematic-debugging, verification-before-completion]
       guidance: []
       subagents: []
       plugins: [shared:openrig-core]
-      runtime_resources: [shared:claude-default-settings, shared:claude-default-mcp, shared:codex-default-config, shared:claude-activity-hooks]
+      runtime_resources:
+        [
+          shared:claude-default-settings,
+          shared:claude-default-mcp,
+          shared:claude-code-default-config,
+          shared:claude-activity-hooks,
+        ]
 
 resources:
   guidance:

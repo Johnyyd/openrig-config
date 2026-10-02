@@ -3,7 +3,7 @@ version: "1.0"
 description: "Security Analyst agent"
 
 defaults:
-  runtime: codex
+  runtime: claude-code
 
 profiles:
   default:

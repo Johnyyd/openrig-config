@@ -3,7 +3,7 @@ version: "1.0"
 description: "Technical Writer agent for documentation"
 
 defaults:
-  runtime: codex
+  runtime: claude-code
 
 profiles:
   default:

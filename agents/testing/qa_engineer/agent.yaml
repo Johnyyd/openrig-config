@@ -3,7 +3,7 @@ version: "1.0"
 description: "Quality Assurance Engineer agent for testing and validation"
 
 defaults:
-  runtime: codex
+  runtime: claude-code
 
 profiles:
   default:
