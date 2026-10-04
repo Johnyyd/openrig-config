@@ -1,6 +1,7 @@
 version: "0.2"
 name: professional-cafe-team
 summary: "A professional cafe development team"
+permission_policy: builtin:yolo
 
 pods:
   # Leadership

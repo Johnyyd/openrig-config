@@ -143,8 +143,27 @@ rig capture developer_owner.developer_owner@professional-cafe-team
 
 ---
 
+---
+
+## ⚡ Zero-Prompt Auto-Accept (YOLO Mode)
+
+By default, Claude Code launches with `--permission-mode acceptEdits`, which prompts for approval when running terminal commands or unfamiliar tools. For hands-off autonomous execution:
+
+1. **Rig-Level Spec Policy:** `professional-cafe-team.yaml` specifies:
+   ```yaml
+   permission_policy: builtin:yolo
+   ```
+   This instructs OpenRig to launch all 27 Claude Code seats with `--dangerously-skip-permissions` (or `-s danger-full-access -a never` for Codex).
+2. **Environment Variable Override:** The loop script sets:
+   ```bash
+   export OPENRIG_YOLO="${OPENRIG_YOLO:-1}"
+   ```
+   Any manual `rig up` or script execution inherits full bypass auto-accept. If you ever want to require manual approvals, pass `OPENRIG_YOLO=0 ./bin/autonomous-loop.sh`.
+
+---
+
 ## 🛠️ Troubleshooting
 
 * **Daemon not running:** Run `rig up professional-cafe-team.yaml` or start the daemon with `rig daemon start`.
-* **Agent permission block:** If an agent pane stops on an interactive prompt, check the session via `tmux attach -t <session>` or verify harness permissions.
+* **Agent permission prompts:** Verify `rig policy current --spec professional-cafe-team.yaml` shows `builtin:yolo`. All Claude sessions will auto-accept tool calls without halting.
 * **Spec audit warning:** Run `./bin/autonomous-loop.sh --dry-run` to ensure all YAML specs conform to OpenRig schema.

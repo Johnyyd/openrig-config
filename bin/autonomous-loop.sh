@@ -16,6 +16,7 @@ CYCLES=3
 INFINITE=false
 USE_WORKFLOW=true
 DRY_RUN=false
+export OPENRIG_YOLO="${OPENRIG_YOLO:-1}"
 INITIAL_GOAL="Develop the next priority feature for the cafe management system. Review dogfood findings and active backlog, formulate the slice, and coordinate delivery."
 
 # Colors
@@ -130,7 +131,7 @@ if [[ "${DRY_RUN}" == "true" ]]; then
 fi
 
 # 2. Ensure Rig is running
-log "${BLUE}Ensuring OpenRig daemon and '${RIG_NAME}' are up...${NC}"
+log "${BLUE}Ensuring OpenRig daemon and '${RIG_NAME}' are up (YOLO/Auto-Accept: ${OPENRIG_YOLO})...${NC}"
 rig up "${RIG_SPEC}" || {
   log "${YELLOW}Note: rig up returned $?, checking live status...${NC}"
 }
