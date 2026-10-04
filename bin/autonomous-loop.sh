@@ -12,9 +12,9 @@ LOG_DIR="${REPO_ROOT}/logs/autonomous"
 RIG_NAME="professional-cafe-team"
 
 # Defaults
-CYCLES=1
+CYCLES=3
 INFINITE=false
-USE_WORKFLOW=false
+USE_WORKFLOW=true
 DRY_RUN=false
 INITIAL_GOAL="Develop the next priority feature for the cafe management system. Review dogfood findings and active backlog, formulate the slice, and coordinate delivery."
 
