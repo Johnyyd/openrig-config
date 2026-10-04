@@ -1,0 +1,35 @@
+name: team_lead
+version: "1.0"
+description: Team Lead — Autonomous project lead, aligns strategic goals, coordinates owners, and drives continuous delivery loops
+
+defaults:
+  runtime: claude-code
+
+imports:
+  - ref: local:../../shared
+
+profiles:
+  default:
+    uses:
+      skills:
+        [
+          orchestration-team,
+          plan-review,
+          systematic-debugging,
+          verification-before-completion,
+        ]
+      guidance: []
+      subagents: []
+      permission_policy:
+      launch_posture: "floor"
+      permissions: []
+  guidance:
+    - id: role
+      path: guidance/role.md
+
+startup:
+  files:
+    - path: guidance/role.md
+      delivery_hint: send_text
+      required: true
+  actions: []

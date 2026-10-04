@@ -14,6 +14,16 @@ Source (Controller)  ──delegates_to──►  Target (Delegate)
 
 ---
 
+## 0. LEADERSHIP & AUTONOMOUS DOMAIN
+
+| Controller Agent | Role | Delegates To | Use When |
+|------------------|------|--------------|----------|
+| `team_lead` | **Team Lead** — Autonomous Project Lead. Strategic direction, backlog synthesis, cross-domain dispatch, continuous delivery loop driver | `orchestration_orchestrator` (sprint ops)<br>`product_owner` (spec & business rules)<br>`developer_owner` (tech architecture & dev dispatch)<br>`qa_engineer` (verification)<br>`review_independent` (audit) | **Autonomous development**, hands-off project execution, high-level business goals, multi-cycle development loops |
+
+**Entry point for autonomous / hands-off work:** → `team_lead.team_lead` (or run `./bin/autonomous-loop.sh`)
+
+---
+
 ## 1. PRODUCT & PLANNING DOMAIN
 
 | Controller Agent | Role | Delegates To | Use When |
@@ -153,6 +163,7 @@ Source (Controller)  ──delegates_to──►  Target (Delegate)
 
 | Your Goal | First `rig send` Target |
 |-----------|-------------------------|
+| **Autonomous hands-off development (Full Loop)** | `team_lead.team_lead` or `./bin/autonomous-loop.sh` |
 | **New feature / product idea** | `product_owner.product_owner` |
 | **Implement feature (dev coordination)** | `developer_owner.developer_owner` |
 | **Run tests / QA phase** | `qa_engineer.qa_engineer` |
@@ -216,6 +227,18 @@ factory_rsi_dogfood
 ---
 
 ## 💡 Usage Patterns
+
+### Pattern 0: Autonomous Continuous Development Loop (Team Lead)
+```bash
+# Run 3 autonomous development cycles using the automated CLI driver:
+./bin/autonomous-loop.sh --cycles 3 --goal "Implement QR table ordering and payment integration"
+
+# Or run continuously in infinite hands-off mode:
+./bin/autonomous-loop.sh --infinite
+
+# Or dispatch a single autonomous cycle directly via rig send:
+rig send team_lead.team_lead "Build next priority feature: review dogfood findings and active backlog, formulate slice, and coordinate delivery."
+```
 
 ### Pattern 1: Feature Development (Standard)
 ```bash

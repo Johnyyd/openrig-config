@@ -3,6 +3,17 @@ name: professional-cafe-team
 summary: "A professional cafe development team"
 
 pods:
+  # Leadership
+  - id: team_lead
+    label: Team Lead
+    members:
+      - id: team_lead
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/leadership/team_lead"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "/home/tringuyen/Documents/GitHub/cafe-management-system"
+
   # Product Management
   - id: product_owner
     label: Product Owner
@@ -275,15 +286,106 @@ pods:
         cwd: "/home/tringuyen/Documents/GitHub/cafe-management-system"
 
 edges:
+  # ============================================================================
+  # 0. Leadership Domain (Team Lead Outgoing Links)
+  # ============================================================================
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: orchestration_orchestrator.orchestration_orchestrator
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: product_owner.product_owner
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: developer_owner.developer_owner
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: qa_engineer.qa_engineer
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: review_independent.review_independent
+  - kind: collaborates_with
+    from: factory_rsi_dogfood.factory_rsi_dogfood
+    to: team_lead.team_lead
+
+  # ============================================================================
+  # 1. Product Management Domain (Product Owner Outgoing Links)
+  # ============================================================================
+  # Primary delegation
   - kind: delegates_to
     from: product_owner.product_owner
     to: developer_owner.developer_owner
   - kind: delegates_to
     from: product_owner.product_owner
     to: product_inventory_manager.product_inventory_manager
+  # Product Owner direct dispatch to UI/UX, QA, Docs, Review, and Dev pods
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: developer_uiux.developer_uiux
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: qa_engineer.qa_engineer
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: documentation_writer.documentation_writer
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: tech_writer.tech_writer
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: review_independent.review_independent
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: developer_implementer.developer_implementer
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: developer_backend.developer_backend
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: developer_frontend.developer_frontend
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: developer_qa.developer_qa
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: developer_payment.developer_payment
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: compliance_officer.compliance_officer
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: security_analyst.security_analyst
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: security_auditor.security_auditor
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: devops_engineer.devops_engineer
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: devops_architect.devops_architect
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: performance_analyst.performance_analyst
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: performance_engineer.performance_engineer
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: performance_data_analyst.performance_data_analyst
+  - kind: collaborates_with
+    from: product_owner.product_owner
+    to: orchestration_orchestrator.orchestration_orchestrator
+
+  # Product Inventory Manager -> Dev Owner
   - kind: delegates_to
     from: product_inventory_manager.product_inventory_manager
     to: developer_owner.developer_owner
+
+  # ============================================================================
+  # 2. Development Hub (Developer Owner Outgoing Links)
+  # ============================================================================
+  # Dev sub-pods
   - kind: delegates_to
     from: developer_owner.developer_owner
     to: developer_implementer.developer_implementer
@@ -302,18 +404,144 @@ edges:
   - kind: delegates_to
     from: developer_owner.developer_owner
     to: developer_qa.developer_qa
+  # QA & Compliance
   - kind: delegates_to
     from: developer_owner.developer_owner
     to: qa_engineer.qa_engineer
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: compliance_officer.compliance_officer
+  # Documentation
   - kind: delegates_to
     from: developer_owner.developer_owner
     to: documentation_writer.documentation_writer
   - kind: delegates_to
     from: developer_owner.developer_owner
     to: tech_writer.tech_writer
+  # Performance
   - kind: delegates_to
     from: developer_owner.developer_owner
     to: performance_analyst.performance_analyst
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: performance_engineer.performance_engineer
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: performance_data_analyst.performance_data_analyst
+  # Security
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: security_analyst.security_analyst
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: security_auditor.security_auditor
+  # DevOps & Infrastructure
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: devops_engineer.devops_engineer
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: devops_architect.devops_architect
+  # Peer collaboration
+  - kind: collaborates_with
+    from: developer_owner.developer_owner
+    to: review_independent.review_independent
+  - kind: collaborates_with
+    from: developer_owner.developer_owner
+    to: product_inventory_manager.product_inventory_manager
+
+  # ============================================================================
+  # 3. Orchestration Domain (Meta-Controller Outgoing Links)
+  # ============================================================================
+  # Product Domain
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: product_owner.product_owner
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: product_inventory_manager.product_inventory_manager
+  # Development Domain
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: developer_owner.developer_owner
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: developer_implementer.developer_implementer
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: developer_backend.developer_backend
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: developer_frontend.developer_frontend
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: developer_uiux.developer_uiux
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: developer_payment.developer_payment
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: developer_qa.developer_qa
+  # Testing & QA
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: qa_engineer.qa_engineer
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: compliance_officer.compliance_officer
+  # Security
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: security_analyst.security_analyst
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: security_auditor.security_auditor
+  # DevOps & Infrastructure
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: devops_engineer.devops_engineer
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: devops_architect.devops_architect
+  # Documentation
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: documentation_writer.documentation_writer
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: tech_writer.tech_writer
+  # Performance
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: performance_analyst.performance_analyst
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: performance_engineer.performance_engineer
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: performance_data_analyst.performance_data_analyst
+  # Research & Review
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: research_analyst.research_analyst
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: research_synthesizer.research_synthesizer
+  - kind: delegates_to
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: review_independent.review_independent
+  # Factory RSI peer collaboration
+  - kind: collaborates_with
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: factory_rsi_dogfood.factory_rsi_dogfood
+  - kind: collaborates_with
+    from: orchestration_orchestrator.orchestration_orchestrator
+    to: factory_rsi_release_manager.factory_rsi_release_manager
+
+  # ============================================================================
+  # 4. Domain-Internal Delegations
+  # ============================================================================
+  # QA Engineer delegations
   - kind: delegates_to
     from: qa_engineer.qa_engineer
     to: devops_engineer.devops_engineer
@@ -326,30 +554,34 @@ edges:
   - kind: delegates_to
     from: qa_engineer.qa_engineer
     to: compliance_officer.compliance_officer
-  - kind: delegates_to
-    from: developer_owner.developer_owner
-    to: security_analyst.security_analyst
+
+  # Security delegations
   - kind: delegates_to
     from: security_analyst.security_analyst
     to: security_auditor.security_auditor
+
+  # DevOps delegations
   - kind: delegates_to
     from: devops_engineer.devops_engineer
     to: devops_architect.devops_architect
+
+  # Performance delegations
   - kind: delegates_to
     from: performance_analyst.performance_analyst
     to: performance_data_analyst.performance_data_analyst
   - kind: delegates_to
     from: performance_analyst.performance_analyst
     to: performance_engineer.performance_engineer
+
+  # ============================================================================
+  # 5. Factory RSI, Research & Review Feedback Loop
+  # ============================================================================
   - kind: delegates_to
     from: factory_rsi_dogfood.factory_rsi_dogfood
     to: factory_rsi_release_manager.factory_rsi_release_manager
   - kind: delegates_to
     from: factory_rsi_release_manager.factory_rsi_release_manager
     to: orchestration_orchestrator.orchestration_orchestrator
-  - kind: delegates_to
-    from: orchestration_orchestrator.orchestration_orchestrator
-    to: research_analyst.research_analyst
   - kind: delegates_to
     from: research_analyst.research_analyst
     to: research_synthesizer.research_synthesizer

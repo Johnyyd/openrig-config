@@ -1,0 +1,123 @@
+# OpenRig Autonomous Workflow for Professional Cafe Team
+# Continuous SDLC feedback loop:
+#   team_lead -> product_owner -> developer_owner -> qa -> reviewer -> release_manager -> dogfood -> team_lead
+workflow:
+  id: cafe-autonomous-workflow
+  version: 1
+  objective: >
+    Autonomous end-to-end cafe management system development loop:
+    Team Lead sets milestone goal -> Product Owner designs SPEC -> Developer Owner builds
+    -> QA validates -> Independent Review signs off -> Release Manager packages
+    -> Dogfood tests shipped app and feeds insights back into the next cycle.
+  target:
+    rig: professional-cafe-team
+  entry:
+    role: team_lead
+  coordination_terminal_turn_rule: hot_potato
+  exception_routing:
+    default: orchestrator
+    orchestrator_role: orchestrator
+  roles:
+    team_lead:
+      skill_refs: [openrig-user, orchestration-team, plan-review]
+      preferred_targets: [team_lead.team_lead@professional-cafe-team]
+    product_owner:
+      skill_refs: [openrig-user, requirements-writer]
+      preferred_targets: [product_owner.product_owner@professional-cafe-team]
+    developer_owner:
+      skill_refs: [openrig-user, development-team, test-driven-development]
+      preferred_targets: [developer_owner.developer_owner@professional-cafe-team]
+    qa:
+      skill_refs: [openrig-user, verification-before-completion]
+      preferred_targets: [qa_engineer.qa_engineer@professional-cafe-team]
+    reviewer:
+      skill_refs: [openrig-user, review-team, plan-review]
+      preferred_targets: [review_independent.review_independent@professional-cafe-team]
+    release_manager:
+      skill_refs: [openrig-user, release-manager]
+      preferred_targets: [factory_rsi_release_manager.factory_rsi_release_manager@professional-cafe-team]
+    dogfood:
+      skill_refs: [openrig-user, dogfood, systematic-debugging]
+      preferred_targets: [factory_rsi_dogfood.factory_rsi_dogfood@professional-cafe-team]
+    orchestrator:
+      skill_refs: [openrig-user, orchestration-team]
+      preferred_targets: [orchestration_orchestrator.orchestration_orchestrator@professional-cafe-team]
+  steps:
+    - id: strategic_goal
+      actor_role: team_lead
+      objective: >
+        Review backlog and dogfood findings from previous cycles. Define ONE focused
+        milestone slice intent for the current iteration and record in active-slice.md.
+      allowed_exits: [handoff, waiting, failed]
+      next_hop:
+        mode: require
+        suggested_roles: [product_owner]
+    - id: spec_definition
+      actor_role: product_owner
+      objective: >
+        Produce formal SPEC.md, user stories, acceptance criteria, and validation
+        verdict for the active slice.
+      allowed_exits: [handoff, waiting, failed]
+      next_hop:
+        mode: require
+        suggested_roles: [developer_owner]
+    - id: implementation
+      actor_role: developer_owner
+      objective: >
+        Architect and coordinate implementation across backend, frontend, payment, and UI/UX pods.
+        Produce execution proof for QA verification.
+      allowed_exits: [handoff, waiting, failed]
+      next_hop:
+        mode: require
+        suggested_roles: [qa]
+    - id: qa_verification
+      actor_role: qa
+      objective: >
+        Execute test suites (functional, regression, integration, compliance).
+        Passing handoffs to reviewer; failing routes back to developer_owner for remediation.
+      allowed_exits: [handoff, waiting, failed]
+      next_hop:
+        mode: require
+        suggested_roles: [reviewer]
+        on:
+          failed: implementation
+    - id: independent_review
+      actor_role: reviewer
+      objective: >
+        Conduct independent code and architecture review.
+        Passing handoffs to release prep; defects route back to developer_owner for fixes.
+      allowed_exits: [handoff, waiting, failed]
+      next_hop:
+        mode: require
+        suggested_roles: [release_manager]
+        on:
+          failed: implementation
+    - id: release_prep
+      actor_role: release_manager
+      objective: >
+        Prepare release artifacts, changelog, staged PR, and record cycle proof at proof/PROOF.md.
+      allowed_exits: [handoff, waiting, failed]
+      next_hop:
+        mode: require
+        suggested_roles: [dogfood]
+    - id: dogfood_feedback
+      actor_role: dogfood
+      objective: >
+        Exercise the shipped product in a real cafe scenario, record rough edges and bugs
+        in proof/dogfood-findings.md, and hand off to team_lead for the next cycle.
+      allowed_exits: [handoff, waiting, done, failed]
+      next_hop:
+        mode: require
+        suggested_roles: [team_lead]
+  invariants:
+    continuation_required: true
+    preserve_lineage: true
+    closure_required: true
+    allowed_exits: [handoff, waiting, done, failed]
+  loop_guards:
+    max_hops: 30
+    spawn_budget: 0
+  closure:
+    success: Iteration cycle clean, release artifacts prepared, and dogfood findings recorded for next cycle.
+    degraded: Cycle stopped with a named blocker or reached max_hops limit.
+    failed: Step failed as an exception; routed to orchestrator for recovery.
