@@ -1,0 +1,567 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      skip_tests:
+        description: 'Skip test stage'
+        required: false
+        default: false
+        type: boolean
+      skip_security:
+        description: 'Skip security scans'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NODE_VERSION: '20'
+  GO_VERSION: '1.22'
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # ============================================================================
+  # PRE-CHECKS
+  # ============================================================================
+  pre-checks:
+    name: Pre-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      skip_tests: ${{ steps.check.outputs.skip_tests }}
+      skip_security: ${{ steps.check.outputs.skip_security }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine skip flags
+        id: check
+        run: |
+          SKIP_TESTS="${{ github.event.inputs.skip_tests || 'false' }}"
+          SKIP_SECURITY="${{ github.event.inputs.skip_security || 'false' }}"
+          echo "skip_tests=$SKIP_TESTS" >> $GITHUB_OUTPUT
+          echo "skip_security=$SKIP_SECURITY" >> $GITHUB_OUTPUT
+
+      - name: Validate branch protection
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "Main branch push detected - full pipeline will run"
+
+  # ============================================================================
+  # BUILD
+  # ============================================================================
+  build:
+    name: Build
+    needs: pre-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.description=Built with GitHub Actions
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          platforms: linux/amd64,linux/arm64
+          provenance: true
+          sbom: true
+
+      - name: Verify image
+        run: |
+          docker pull ${{ steps.meta.outputs.tags }}
+          docker inspect ${{ steps.meta.outputs.tags }} | jq '.[0].RepoDigests'
+
+  # ============================================================================
+  # UNIT TESTS
+  # ============================================================================
+  unit-tests:
+    name: Unit Tests
+    needs: [pre-checks, build]
+    if: needs.pre-checks.outputs.skip_tests != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test -- --coverage --passWithNoTests
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: unit-tests
+          fail_ci_if_error: true
+
+  # ============================================================================
+  # INTEGRATION TESTS
+  # ============================================================================
+  integration-tests:
+    name: Integration Tests
+    needs: [pre-checks, build]
+    if: needs.pre-checks.outputs.skip_tests != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for services
+        run: |
+          timeout 60 bash -c 'until pg_isready -h localhost -p 5432 -U test; do sleep 1; done'
+          timeout 60 bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 1; done'
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          REDIS_URL: redis://localhost:6379
+
+  # ============================================================================
+  # E2E TESTS
+  # ============================================================================
+  e2e-tests:
+    name: E2E Tests
+    needs: [pre-checks, build]
+    if: needs.pre-checks.outputs.skip_tests != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm run start &
+          sleep 10
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload E2E artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  # ============================================================================
+  # SECURITY SCANS
+  # ============================================================================
+  sast:
+    name: SAST (CodeQL)
+    needs: [pre-checks, build]
+    if: needs.pre-checks.outputs.skip_security != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript, typescript, python, go]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+          upload: true
+
+  sca:
+    name: SCA (Dependabot)
+    needs: [pre-checks, build]
+    if: needs.pre-checks.outputs.skip_security != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: false
+
+      - name: Run Dependabot
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  container-scan:
+    name: Container Scan (Trivy)
+    needs: [pre-checks, build]
+    if: needs.pre-checks.outputs.skip_security != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build.outputs.image-tag }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          vuln-type: 'os,lang'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: container-scan
+
+  iac-scan:
+    name: IaC Scan (Checkov)
+    needs: [pre-checks, build]
+    if: needs.pre-checks.outputs.skip_security != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: kubernetes,helm,dockerfile
+          quiet: true
+          compact: true
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+          skip_check: CKV_K8S_21,CKV_K8S_22
+
+      - name: Upload Checkov results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: checkov-results.sarif
+          category: iac-scan
+
+  secret-scan:
+    name: Secret Scan (TruffleHog)
+    needs: [pre-checks, build]
+    if: needs.pre-checks.outputs.skip_security != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: ${{ github.sha }}
+          extra_args: --fail --json
+
+  # ============================================================================
+  # DEPLOY
+  # ============================================================================
+  deploy-development:
+    name: Deploy to Development
+    needs: [build, unit-tests, integration-tests, e2e-tests, sast, sca, container-scan, iac-scan, secret-scan]
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'development')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: development
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Development via ArgoCD
+        uses: argoproj-labs/argocd-action@v1
+        with:
+          argocd_server: ${{ secrets.ARGOCD_SERVER }}
+          argocd_token: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+          action: sync
+          app_name: development-app
+          project: default
+          prune: true
+          self_heal: true
+          sync_options: CreateNamespace=true,PruneLast=true
+
+      - name: Wait for sync
+        run: |
+          sleep 30
+          kubectl wait --for=condition=Available deployment -n development --all --timeout=300s
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [build, unit-tests, integration-tests, e2e-tests, sast, sca, container-scan, iac-scan, secret-scan]
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging via ArgoCD
+        uses: argoproj-labs/argocd-action@v1
+        with:
+          argocd_server: ${{ secrets.ARGOCD_SERVER }}
+          argocd_token: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+          action: sync
+          app_name: staging-app
+          project: default
+          prune: true
+          self_heal: true
+          sync_options: CreateNamespace=true,PruneLast=true
+
+      - name: Wait for sync
+        run: |
+          sleep 30
+          kubectl wait --for=condition=Available deployment -n staging --all --timeout=300s
+
+  deploy-production:
+    name: Deploy to Production
+    needs: [build, unit-tests, integration-tests, e2e-tests, sast, sca, container-scan, iac-scan, secret-scan]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Production via ArgoCD
+        uses: argoproj-labs/argocd-action@v1
+        with:
+          argocd_server: ${{ secrets.ARGOCD_SERVER }}
+          argocd_token: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+          action: sync
+          app_name: production-app
+          project: default
+          prune: true
+          self_heal: true
+          sync_options: CreateNamespace=true,PruneLast=true
+
+      - name: Wait for sync
+        run: |
+          sleep 30
+          kubectl wait --for=condition=Available deployment -n production --all --timeout=300s
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            Automated release from CI/CD pipeline
+            Image: ${{ needs.build.outputs.image-tag }}
+            Digest: ${{ needs.build.outputs.image-digest }}
+
+  # ============================================================================
+  # NOTIFICATIONS
+  # ============================================================================
+  notify-success:
+    name: Notify Success
+    needs: [deploy-development, deploy-staging, deploy-production]
+    if: always() && needs.deploy-development.result == 'success' || needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post to Slack
+        if: env.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#deployments'
+          text: "Deployment successful! :rocket:"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ github.event.pull_request.number }},
+              owner: ${{ github.repository_owner }},
+              repo: ${{ github.event.repository.name }},
+              body: '✅ All checks passed and deployment successful!'
+            })
+
+  notify-failure:
+    name: Notify Failure
+    needs: [build, unit-tests, integration-tests, e2e-tests, sast, sca, container-scan, iac-scan, secret-scan, deploy-development, deploy-staging, deploy-production]
+    if: always() && contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post to Slack
+        if: env.SLACK_WEBHOOK_URL != ''
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          text: "Pipeline failed! :x:"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ github.event.pull_request.number }},
+              owner: ${{ github.repository_owner }},
+              repo: ${{ github.event.repository.name }},
+              body: '❌ Pipeline failed. Please check the workflow logs.'
+            })

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: tempo-stack
+description: Grafana Tempo distributed tracing stack with OpenTelemetry Collector
+type: application
+version: 0.1.0
+appVersion: "2.4.0"
+keywords:
+  - tracing
+  - tempo
+  - opentelemetry
+  - distributed-tracing
+  - observability
+maintainers:
+  - name: DevOps Engineer
+    email: devops@example.com

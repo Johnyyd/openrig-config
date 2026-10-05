@@ -1,0 +1,69 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/org/openrig-config.git
+    targetRevision: main
+    path: charts/application
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: namespace
+          value: production
+        - name: deployment.image.repository
+          value: ghcr.io/org/sample-app
+        - name: deployment.image.tag
+          value: "v1.0.0"
+        - name: deployment.replicaCount
+          value: "3"
+        - name: service.port
+          value: "80"
+        - name: hpa.enabled
+          value: "true"
+        - name: hpa.minReplicas
+          value: "3"
+        - name: hpa.maxReplicas
+          value: "20"
+        - name: cronJob.enabled
+          value: "true"
+        - name: cronJob.name
+          value: "sample-app-daily-report"
+        - name: cronJob.schedule
+          value: "30 3 * * *"
+        - name: cronJob.jobTemplate.template.spec.containers[0].image
+          value: ghcr.io/org/sample-app-report
+        - name: cronJob.jobTemplate.template.spec.containers[0].args
+          value: ["--generate-report", "--date=yesterday"]
+        - name: networkPolicy.enabled
+          value: "true"
+        - name: networkPolicy.ingress[0].from[0].namespaceSelector.matchLabels.kubernetes.io/metadata.name
+          value: ingress-nginx
+        - name: networkPolicy.ingress[0].ports[0].protocol
+          value: TCP
+        - name: networkPolicy.ingress[0].ports[0].port
+          value: "8080"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

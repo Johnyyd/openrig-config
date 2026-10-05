@@ -1,0 +1,14 @@
+apiVersion: v2
+name: argo-cd
+description: ArgoCD GitOps continuous delivery
+type: application
+version: 0.1.0
+appVersion: "2.9.0"
+keywords:
+  - argocd
+  - gitops
+  - continuous-delivery
+  - kubernetes
+maintainers:
+  - name: DevOps Engineer
+    email: devops@example.com

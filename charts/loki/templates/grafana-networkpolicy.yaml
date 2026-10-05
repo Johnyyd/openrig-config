@@ -1,0 +1,24 @@
+{{- if .Values.networkPolicy.enabled -}}
+{{- if .Values.networkPolicy.grafanaIngress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-grafana-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "loki-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "loki-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: grafana
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- toYaml .Values.networkPolicy.grafanaIngress.from | nindent 8 }}
+      ports:
+        - protocol: TCP
+          port: 3000
+{{- end }}
+{{- end }}

@@ -1,0 +1,464 @@
+# Tempo Stack Configuration
+# Based on Grafana Tempo best practices and Kubernetes security hardening
+
+# -- Namespace for the tracing stack
+namespace: tracing
+
+# -- Global image configuration
+image:
+  registry: docker.io
+  pullPolicy: IfNotPresent
+
+# -- Service account configuration
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# -- Tempo configuration
+tempo:
+  # -- Tempo component configuration
+  enabled: true
+
+  # -- Image configuration
+  image:
+    repository: grafana/tempo
+    tag: "2.4.0"
+
+  # -- Resource requests and limits
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+  # -- Tempo configuration
+  config:
+    server:
+      http_listen_port: 3200
+      grpc_listen_port: 9095
+      log_level: info
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+        zipkin:
+          endpoint: 0.0.0.0:9411
+        jaeger:
+          protocols:
+            thrift_http:
+              endpoint: 0.0.0.0:14268
+            grpc:
+              endpoint: 0.0.0.0:14250
+    ingester:
+      max_block_duration: 5m
+      max_block_bytes: 1_000_000
+      complete_block_timeout: 15m
+      trace_idle_period: 10s
+    querier:
+      frontend_worker:
+        frontend_address: tempo-query-frontend:9095
+    query_frontend:
+      search:
+        duration_slo: 5s
+        throughput_bytes_slo: 1.073741824e+09
+    compactor:
+      compaction:
+        block_retention: 30d
+        compacted_block_retention: 1h
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /tempo/traces
+        wal:
+          path: /tempo/wal
+    overrides:
+      defaults:
+        metrics_generator_processor:
+          enabled: true
+          job: tempo
+          processor:
+            service_graphs:
+              enable: true
+            span_metrics:
+              enable: true
+              histogram:
+                buckets: [0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256, 0.512, 1.024, 2.048, 4.096, 8.192, 16.384, 32.768, 65.536, 131.072, 262.144]
+
+  # -- Persistence configuration
+  persistence:
+    enabled: true
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 50Gi
+
+  # -- Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10000
+    runAsGroup: 10000
+    fsGroup: 10000
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10000
+    runAsGroup: 10000
+    fsGroup: 10000
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Service configuration
+  service:
+    type: ClusterIP
+    ports:
+      - name: http
+        port: 3200
+        targetPort: 3200
+      - name: grpc
+        port: 9095
+        targetPort: 9095
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+      - name: zipkin
+        port: 9411
+        targetPort: 9411
+      - name: jaeger-grpc
+        port: 14250
+        targetPort: 14250
+      - name: jaeger-thrift
+        port: 14268
+        targetPort: 14268
+
+  # -- Readiness and liveness probes
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: 3200
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  livenessProbe:
+    httpGet:
+      path: /ready
+      port: 3200
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# -- Tempo Query Frontend
+queryFrontend:
+  enabled: true
+  image:
+    repository: grafana/tempo-query
+    tag: "2.4.0"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  service:
+    type: ClusterIP
+    port: 3200
+    targetPort: 3200
+
+# -- Tempo Querier
+querier:
+  enabled: true
+  image:
+    repository: grafana/tempo
+    tag: "2.4.0"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  replicas: 2
+
+# -- Tempo Compactor
+compactor:
+  enabled: true
+  image:
+    repository: grafana/tempo
+    tag: "2.4.0"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
+# -- OpenTelemetry Collector
+otelCollector:
+  enabled: true
+
+  # -- Image configuration
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.98.0"
+
+  # -- Resource requests and limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # -- Collector configuration
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      jaeger:
+        protocols:
+          thrift_http:
+            endpoint: 0.0.0.0:14268
+          grpc:
+            endpoint: 0.0.0.0:14250
+      zipkin:
+        endpoint: 0.0.0.0:9411
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'otel-collector'
+              static_configs:
+                - targets: ['localhost:8888']
+    processors:
+      batch:
+        timeout: 10s
+        send_batch_size: 10000
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 512
+        spike_limit_mib: 128
+      resource:
+        attributes:
+          - key: service.name
+            from_attribute: k8s.pod.name
+            action: insert
+          - key: k8s.namespace
+            from_attribute: k8s.namespace.name
+            action: insert
+          - key: k8s.pod.name
+            from_attribute: k8s.pod.name
+            action: insert
+          - key: k8s.deployment.name
+            from_attribute: k8s.deployment.name
+            action: insert
+    exporters:
+      otlp:
+        endpoint: tempo.tracing.svc.cluster.local:4317
+        tls:
+          insecure: true
+      prometheus:
+        endpoint: 0.0.0.0:8888
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp, jaeger, zipkin]
+          processors: [memory_limiter, batch, resource]
+          exporters: [otlp]
+        metrics:
+          receivers: [prometheus]
+          processors: [memory_limiter, batch]
+          exporters: [prometheus]
+
+  # -- Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10000
+    runAsGroup: 10000
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+  # -- Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10000
+    runAsGroup: 10000
+    fsGroup: 10000
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Service configuration
+  service:
+    type: ClusterIP
+    ports:
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+      - name: jaeger-grpc
+        port: 14250
+        targetPort: 14250
+      - name: jaeger-thrift
+        port: 14268
+        targetPort: 14268
+      - name: zipkin
+        port: 9411
+        targetPort: 9411
+      - name: prometheus
+        port: 8888
+        targetPort: 8888
+
+# -- NetworkPolicy for tracing stack
+networkPolicy:
+  enabled: true
+
+  # -- Default deny all ingress/egress
+  defaultDeny:
+    enabled: true
+
+  # -- Allow OTel Collector to receive traces
+  otelCollectorIngress:
+    enabled: true
+    from:
+      - namespaceSelector: {}
+        podSelector: {}
+
+  # -- Allow Tempo components to communicate
+  tempoIngress:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: tracing
+
+  # -- Allow Tempo to be queried
+  tempoQueryIngress:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: monitoring
+
+# -- ServiceMonitor for Prometheus scraping
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+  interval: 30s
+  scrapeTimeout: 10s
+
+# -- PodMonitor for OTel Collector
+podMonitor:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+  interval: 30s
+  scrapeTimeout: 10s
+
+# -- PrometheusRule for alerting
+prometheusRule:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+  groups:
+    - name: tempo.rules
+      rules:
+        - alert: TempoHighErrorRate
+          expr: |
+            sum(rate(tempo_distributor_spans_received_total{status_code=~"5.."}[5m]))
+            / sum(rate(tempo_distributor_spans_received_total[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Tempo error rate above 5%"
+            runbook_url: "https://runbooks.example.com/tempo-high-error-rate"
+        - alert: TempoHighLatency
+          expr: |
+            histogram_quantile(0.99, sum(rate(tempo_query_frontend_request_duration_seconds_bucket[5m])) by (le)) > 5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo p99 query latency above 5s"
+            runbook_url: "https://runbooks.example.com/tempo-high-latency"
+        - alert: TempoDiskSpaceLow
+          expr: |
+            (tempo_compactor_retention_deletions_total / tempo_compactor_blocks_total) > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo disk space running low"
+            runbook_url: "https://runbooks.example.com/tempo-disk-space-low"
+
+# -- PodDisruptionBudget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable: ""
+
+# -- Topology spread constraints
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1
+  topologyKey: topology.kubernetes.io/zone
+  whenUnsatisfiable: DoNotSchedule
+
+# -- LimitRange for namespace
+limitRange:
+  enabled: true
+  limits:
+    - type: Container
+      default:
+        memory: 512Mi
+        cpu: 500m
+      defaultRequest:
+        memory: 128Mi
+        cpu: 100m
+      max:
+        memory: 4Gi
+        cpu: "2"
+      min:
+        memory: 32Mi
+        cpu: 10m
+
+# -- ResourceQuota for namespace
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    pods: "50"
+    services: "10"
+    persistentvolumeclaims: "10"

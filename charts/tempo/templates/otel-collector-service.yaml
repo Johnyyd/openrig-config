@@ -1,0 +1,22 @@
+{{- if .Values.otelCollector.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tempo-stack.fullname" . }}-otel-collector
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "tempo-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: otel-collector
+spec:
+  type: {{ .Values.otelCollector.service.type }}
+  selector:
+    {{- include "tempo-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: otel-collector
+  ports:
+    {{- range .Values.otelCollector.service.ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort }}
+      protocol: {{ .protocol | default "TCP" }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: loki-stack
+description: Grafana Loki logging stack with Promtail and Grafana
+type: application
+version: 0.1.0
+appVersion: "2.9.0"
+keywords:
+  - logging
+  - loki
+  - promtail
+  - grafana
+  - observability
+maintainers:
+  - name: DevOps Engineer
+    email: devops@example.com

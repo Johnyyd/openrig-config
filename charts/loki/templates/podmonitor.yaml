@@ -1,0 +1,19 @@
+{{- if .Values.podMonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-promtail
+  namespace: {{ .Values.podMonitor.namespace }}
+  labels:
+    {{- toYaml .Values.podMonitor.labels | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "loki-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: promtail
+  podMetricsEndpoints:
+    - port: http
+      interval: {{ .Values.podMonitor.interval }}
+      scrapeTimeout: {{ .Values.podMonitor.scrapeTimeout }}
+      path: /metrics
+{{- end }}

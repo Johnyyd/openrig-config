@@ -1,0 +1,26 @@
+{{- if .Values.networkPolicy.enabled -}}
+{{- if .Values.networkPolicy.lokiIngress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-loki-ingress
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "loki-stack.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "loki-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: loki
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- toYaml .Values.networkPolicy.lokiIngress.from | nindent 8 }}
+      ports:
+        - protocol: TCP
+          port: 3100
+        - protocol: TCP
+          port: 9095
+{{- end }}
+{{- end }}

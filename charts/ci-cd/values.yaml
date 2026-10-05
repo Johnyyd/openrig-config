@@ -1,0 +1,214 @@
+# CI/CD Pipeline Configuration
+# GitHub Actions workflows for build, test, security scan, and deploy
+
+# -- Pipeline configuration
+pipeline:
+  # -- Global settings
+  global:
+    # -- Default branch for triggers
+    defaultBranch: main
+    # -- Environment names
+    environments:
+      - name: development
+        namespace: development
+        autoDeploy: true
+      - name: staging
+        namespace: staging
+        autoDeploy: false
+        requireApproval: true
+      - name: production
+        namespace: production
+        autoDeploy: false
+        requireApproval: true
+        protectBranches: true
+
+  # -- Build configuration
+  build:
+    # -- Enable build stage
+    enabled: true
+    # -- Docker registry
+    registry: ghcr.io
+    # -- Image name prefix
+    imagePrefix: ""
+    # -- Build timeout
+    timeout: 30m
+    # -- Cache configuration
+    cache:
+      enabled: true
+      type: registry
+      registry: ghcr.io
+    # -- Multi-platform builds
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    # -- Build args
+    args: {}
+    # -- Labels
+    labels:
+      org.opencontainers.image.source: "https://github.com/{{github.repository}}"
+      org.opencontainers.image.description: "Built with GitHub Actions"
+      org.opencontainers.image.licenses: "MIT"
+
+  # -- Test configuration
+  test:
+    # -- Enable test stage
+    enabled: true
+    # -- Unit tests
+    unit:
+      enabled: true
+      command: npm test
+      coverage: true
+      coverageThreshold: 80
+    # -- Integration tests
+    integration:
+      enabled: true
+      command: npm run test:integration
+      requiresServices:
+        - postgres
+        - redis
+    # -- E2E tests
+    e2e:
+      enabled: true
+      command: npm run test:e2e
+      browser: chromium
+      headless: true
+
+  # -- Security scan configuration
+  security:
+    # -- Enable security scanning
+    enabled: true
+    # -- SAST (Static Application Security Testing)
+    sast:
+      enabled: true
+      tool: codeql
+      languages:
+        - javascript
+        - typescript
+        - python
+        - go
+      severityThreshold: high
+    # -- SCA (Software Composition Analysis)
+    sca:
+      enabled: true
+      tool: dependabot
+      severityThreshold: high
+      failOnVulnerabilities: true
+    # -- Container scanning
+    container:
+      enabled: true
+      tool: trivy
+      severityThreshold: high
+      ignoreUnfixed: true
+      scanConfig:
+        - type: os
+        - type: lang
+    # -- IaC scanning
+    iac:
+      enabled: true
+      tool: checkov
+      frameworks:
+        - kubernetes
+        - helm
+        - dockerfile
+      severityThreshold: high
+    # -- Secret scanning
+    secrets:
+      enabled: true
+      tool: trufflehog
+      failOnSecrets: true
+
+  # -- Deploy configuration
+  deploy:
+    # -- Enable deploy stage
+    enabled: true
+    # -- Deployment strategy
+    strategy: argocd
+    # -- ArgoCD configuration
+    argocd:
+      enabled: true
+      server: argocd.example.com
+      namespace: argocd
+      project: default
+      autoSync: true
+      prune: true
+      selfHeal: true
+      syncOptions:
+        - CreateNamespace=true
+        - PruneLast=true
+    # -- Helm configuration
+    helm:
+      enabled: true
+      chartPath: ./charts/application
+      valuesFiles:
+        - values.yaml
+        - values-{environment}.yaml
+      releaseName: ""
+      namespace: ""
+      wait: true
+      timeout: 10m
+      atomic: true
+      cleanupOnFail: true
+    # -- Kustomize configuration
+    kustomize:
+      enabled: false
+      basePath: ./kustomize/base
+      overlaysPath: ./kustomize/overlays
+
+  # -- Notification configuration
+  notifications:
+    # -- Slack notifications
+    slack:
+      enabled: false
+      webhookUrl: ""
+      channels:
+        deployments: "#deployments"
+        alerts: "#alerts"
+      events:
+        - deployment_started
+        - deployment_success
+        - deployment_failed
+        - security_alert
+    # -- Email notifications
+    email:
+      enabled: false
+      smtpServer: ""
+      from: ""
+      to: []
+      events:
+        - deployment_failed
+        - security_alert
+    # -- GitHub notifications
+    github:
+      enabled: true
+      events:
+        - deployment_started
+        - deployment_success
+        - deployment_failed
+        - security_alert
+        - test_failed
+
+# -- Required secrets
+secrets:
+  # -- Container registry
+  - name: REGISTRY_USERNAME
+    description: "Container registry username"
+  - name: REGISTRY_PASSWORD
+    description: "Container registry password/token"
+  # -- ArgoCD
+  - name: ARGOCD_SERVER
+    description: "ArgoCD server URL"
+  - name: ARGOCD_AUTH_TOKEN
+    description: "ArgoCD authentication token"
+  # -- Kubernetes
+  - name: KUBECONFIG
+    description: "Kubeconfig for target clusters"
+  # -- Security scanning
+  - name: CODEQL_TOKEN
+    description: "GitHub CodeQL token"
+  - name: TRIVY_DB_REPOSITORY
+    description: "Trivy DB repository"
+  # -- Notifications
+  - name: SLACK_WEBHOOK_URL
+    description: "Slack webhook URL"
+  - name: EMAIL_SMTP_PASSWORD
+    description: "Email SMTP password"

@@ -1,0 +1,22 @@
+{{- if .Values.promtail.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-promtail-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "loki-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: promtail
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: {{ .Values.promtail.config.server.http_listen_port }}
+      grpc_listen_port: {{ .Values.promtail.config.server.grpc_listen_port }}
+      log_level: {{ .Values.promtail.config.server.log_level }}
+    clients:
+      {{- toYaml .Values.promtail.config.clients | nindent 4 }}
+    positions:
+      filename: {{ .Values.promtail.config.positions.filename }}
+    scrape_configs:
+      {{- toYaml .Values.promtail.config.scrape_configs | nindent 6 }}
+{{- end }}

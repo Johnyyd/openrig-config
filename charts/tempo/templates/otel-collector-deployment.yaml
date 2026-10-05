@@ -1,0 +1,66 @@
+{{- if .Values.otelCollector.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tempo-stack.fullname" . }}-otel-collector
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "tempo-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "tempo-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: otel-collector
+  template:
+    metadata:
+      labels:
+        {{- include "tempo-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: otel-collector
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8888"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ include "tempo-stack.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.otelCollector.podSecurityContext | nindent 8 }}
+      containers:
+        - name: otel-collector
+          image: "{{ .Values.otelCollector.image.repository }}:{{ .Values.otelCollector.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: jaeger-grpc
+              containerPort: 14250
+              protocol: TCP
+            - name: jaeger-thrift
+              containerPort: 14268
+              protocol: TCP
+            - name: zipkin
+              containerPort: 9411
+              protocol: TCP
+            - name: prometheus
+              containerPort: 8888
+              protocol: TCP
+          securityContext:
+            {{- toYaml .Values.otelCollector.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.otelCollector.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otel
+          args:
+            - --config=/etc/otel/collector.yaml
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "tempo-stack.fullname" . }}-otel-collector-config
+{{- end }}

@@ -1,0 +1,15 @@
+{{- if .Values.grafana.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-grafana-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "loki-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+  grafana.ini: |
+    {{- range $key, $value := .Values.grafana.config }}
+    {{ $key }} = {{ $value | quote }}
+    {{- end }}
+{{- end }}

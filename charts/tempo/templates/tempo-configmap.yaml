@@ -1,0 +1,30 @@
+{{- if .Values.tempo.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tempo-stack.fullname" . }}-tempo-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "tempo-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tempo
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: {{ .Values.tempo.config.server.http_listen_port }}
+      grpc_listen_port: {{ .Values.tempo.config.server.grpc_listen_port }}
+      log_level: {{ .Values.tempo.config.server.log_level }}
+    distributor:
+      {{- toYaml .Values.tempo.config.distributor | nindent 4 }}
+    ingester:
+      {{- toYaml .Values.tempo.config.ingester | nindent 4 }}
+    querier:
+      {{- toYaml .Values.tempo.config.querier | nindent 4 }}
+    query_frontend:
+      {{- toYaml .Values.tempo.config.query_frontend | nindent 4 }}
+    compactor:
+      {{- toYaml .Values.tempo.config.compactor | nindent 4 }}
+    storage:
+      {{- toYaml .Values.tempo.config.storage | nindent 4 }}
+    overrides:
+      {{- toYaml .Values.tempo.config.overrides | nindent 4 }}
+{{- end }}

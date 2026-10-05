@@ -1,0 +1,114 @@
+{{- if .Values.tempo.enabled -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "tempo-stack.fullname" . }}-tempo
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "tempo-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tempo
+spec:
+  serviceName: {{ include "tempo-stack.fullname" . }}-tempo
+  replicas: {{ .Values.tempo.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "tempo-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: tempo
+  template:
+    metadata:
+      labels:
+        {{- include "tempo-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: tempo
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3200"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ include "tempo-stack.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.tempo.podSecurityContext | nindent 8 }}
+      {{- if .Values.topologySpreadConstraints.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "tempo-stack.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: tempo
+      {{- end }}
+      containers:
+        - name: tempo
+          image: "{{ .Values.tempo.image.repository }}:{{ .Values.tempo.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3200
+              protocol: TCP
+            - name: grpc
+              containerPort: 9095
+              protocol: TCP
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: zipkin
+              containerPort: 9411
+              protocol: TCP
+            - name: jaeger-grpc
+              containerPort: 14250
+              protocol: TCP
+            - name: jaeger-thrift
+              containerPort: 14268
+              protocol: TCP
+          securityContext:
+            {{- toYaml .Values.tempo.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.tempo.resources | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.tempo.readinessProbe | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.tempo.livenessProbe | nindent 12 }}
+          volumeMounts:
+            - name: tempo-data
+              mountPath: /tempo
+            - name: config
+              mountPath: /etc/tempo
+          args:
+            - -config.file=/etc/tempo/tempo.yaml
+            - -target=all
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "tempo-stack.fullname" . }}-tempo-config
+  {{- if .Values.tempo.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: tempo-data
+      spec:
+        accessModes:
+          {{- toYaml .Values.tempo.persistence.accessModes | nindent 10 }}
+        storageClassName: {{ .Values.tempo.persistence.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.tempo.persistence.size }}
+  {{- else }}
+  volumeClaimTemplates:
+    - metadata:
+        name: tempo-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+  {{- end }}
+{{- end }}

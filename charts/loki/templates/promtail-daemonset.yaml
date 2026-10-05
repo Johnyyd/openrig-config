@@ -1,0 +1,68 @@
+{{- if .Values.promtail.enabled -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-promtail
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "loki-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: promtail
+spec:
+  selector:
+    matchLabels:
+      {{- include "loki-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: promtail
+  template:
+    metadata:
+      labels:
+        {{- include "loki-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: promtail
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ include "loki-stack.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.promtail.podSecurityContext | nindent 8 }}
+      hostNetwork: true
+      hostPID: true
+      {{- if .Values.topologySpreadConstraints.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.topologySpreadConstraints.maxSkew }}
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "loki-stack.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: promtail
+      {{- end }}
+      containers:
+        - name: promtail
+          image: "{{ .Values.promtail.image.repository }}:{{ .Values.promtail.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 9080
+              protocol: TCP
+          securityContext:
+            {{- toYaml .Values.promtail.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.promtail.resources | nindent 12 }}
+          volumeMounts:
+            {{- toYaml .Values.promtail.volumeMounts | nindent 12 }}
+          args:
+            - -config.file=/etc/promtail/promtail.yaml
+            - -client.url=http://{{ include "loki-stack.fullname" . }}-loki.{{ .Values.namespace }}.svc.cluster.local:3100/loki/api/v1/push
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+      volumes:
+        {{- toYaml .Values.promtail.volumes | nindent 8 }}
+        - name: config
+          configMap:
+            name: {{ include "loki-stack.fullname" . }}-promtail-config
+{{- end }}

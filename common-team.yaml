@@ -1,0 +1,311 @@
+version: "0.2"
+name: common-team
+summary: "A lean, high-performance general-purpose software development team with full-cycle SDLC and bidirectional leadership coordination"
+permission_policy: builtin:yolo
+
+pods:
+  # ============================================================================
+  # 1. Leadership (Strategic Alignment & Loop Driver)
+  # ============================================================================
+  - id: team_lead
+    label: Team Lead
+    members:
+      - id: team_lead
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/leadership/team_lead"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+  # ============================================================================
+  # 2. Product Management (Requirements, Specs & Backlog)
+  # ============================================================================
+  - id: product_owner
+    label: Product Owner
+    members:
+      - id: product_owner
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/product/product_owner"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+  # ============================================================================
+  # 3. Development Leadership & Architecture (Technical Design & Coordination)
+  # ============================================================================
+  - id: developer_owner
+    label: Development Owner
+    members:
+      - id: developer_owner
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/owner"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+  # ============================================================================
+  # 4. Backend Engineering (APIs, Services & Databases)
+  # ============================================================================
+  - id: developer_backend
+    label: Backend Developer
+    members:
+      - id: developer_backend
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/backend"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+  # ============================================================================
+  # 5. Frontend Engineering (UI/UX Implementation & Client Logic)
+  # ============================================================================
+  - id: developer_frontend
+    label: Frontend Developer
+    members:
+      - id: developer_frontend
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/frontend"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+  # ============================================================================
+  # 6. Core Implementation (Cross-cutting Features, Integration & Fixes)
+  # ============================================================================
+  - id: developer_implementer
+    label: Implementer
+    members:
+      - id: developer_implementer
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/development/implementer"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+  # ============================================================================
+  # 7. Quality Assurance (Testing, Automation & Verification)
+  # ============================================================================
+  - id: qa_engineer
+    label: QA Engineer
+    members:
+      - id: qa_engineer
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/testing/qa_engineer"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+  # ============================================================================
+  # 8. Code Review & Quality Gate (Independent Review & Compliance)
+  # ============================================================================
+  - id: review_independent
+    label: Independent Reviewer
+    members:
+      - id: review_independent
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/review/independent-reviewer"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+  # ============================================================================
+  # 9. Security (Vulnerability Analysis, Security Audit & Safety)
+  # ============================================================================
+  - id: security_analyst
+    label: Security Analyst
+    members:
+      - id: security_analyst
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/security/security_analyst"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+  # ============================================================================
+  # 10. DevOps & Infrastructure (CI/CD, Containers & Deployment)
+  # ============================================================================
+  - id: devops_engineer
+    label: DevOps Engineer
+    members:
+      - id: devops_engineer
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/devops/engineer"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+  # ============================================================================
+  # 11. Technical Documentation (Architecture Docs, API References & Guides)
+  # ============================================================================
+  - id: tech_writer
+    label: Technical Writer
+    members:
+      - id: tech_writer
+        agent_ref: "path:/home/tringuyen/Documents/GitHub/openrig-config/agents/documentation/tech-writer"
+        runtime: claude-code
+        model: auto
+        profile: default
+        cwd: "."
+
+edges:
+  # ============================================================================
+  # 1. Team Lead -> Pods/Agents (Command, Delegation & Strategic Directives)
+  # ============================================================================
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: product_owner.product_owner
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: developer_owner.developer_owner
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: qa_engineer.qa_engineer
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: review_independent.review_independent
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: security_analyst.security_analyst
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: devops_engineer.devops_engineer
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: tech_writer.tech_writer
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: developer_implementer.developer_implementer
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: developer_backend.developer_backend
+  - kind: delegates_to
+    from: team_lead.team_lead
+    to: developer_frontend.developer_frontend
+  - kind: collaborates_with
+    from: team_lead.team_lead
+    to: product_owner.product_owner
+  - kind: collaborates_with
+    from: team_lead.team_lead
+    to: developer_owner.developer_owner
+
+  # ============================================================================
+  # 2. Pods/Agents -> Team Lead (Status Reporting, Blockers & Escalations)
+  # ============================================================================
+  - kind: escalates_to
+    from: product_owner.product_owner
+    to: team_lead.team_lead
+  - kind: escalates_to
+    from: developer_owner.developer_owner
+    to: team_lead.team_lead
+  - kind: escalates_to
+    from: qa_engineer.qa_engineer
+    to: team_lead.team_lead
+  - kind: escalates_to
+    from: review_independent.review_independent
+    to: team_lead.team_lead
+  - kind: escalates_to
+    from: security_analyst.security_analyst
+    to: team_lead.team_lead
+  - kind: escalates_to
+    from: devops_engineer.devops_engineer
+    to: team_lead.team_lead
+  - kind: escalates_to
+    from: tech_writer.tech_writer
+    to: team_lead.team_lead
+  - kind: escalates_to
+    from: developer_implementer.developer_implementer
+    to: team_lead.team_lead
+  - kind: escalates_to
+    from: developer_backend.developer_backend
+    to: team_lead.team_lead
+  - kind: escalates_to
+    from: developer_frontend.developer_frontend
+    to: team_lead.team_lead
+
+  # ============================================================================
+  # 3. Product Domain (Requirements & Technical Handoff)
+  # ============================================================================
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: developer_owner.developer_owner
+  - kind: delegates_to
+    from: product_owner.product_owner
+    to: tech_writer.tech_writer
+  - kind: collaborates_with
+    from: product_owner.product_owner
+    to: qa_engineer.qa_engineer
+
+  # ============================================================================
+  # 4. Development Hub (Developer Owner Coordination & Execution)
+  # ============================================================================
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: developer_backend.developer_backend
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: developer_frontend.developer_frontend
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: developer_implementer.developer_implementer
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: qa_engineer.qa_engineer
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: security_analyst.security_analyst
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: devops_engineer.devops_engineer
+  - kind: delegates_to
+    from: developer_owner.developer_owner
+    to: tech_writer.tech_writer
+  - kind: collaborates_with
+    from: developer_owner.developer_owner
+    to: review_independent.review_independent
+
+  # ============================================================================
+  # 5. Developer Sub-Pods Reporting & Internal Collaboration
+  # ============================================================================
+  - kind: escalates_to
+    from: developer_backend.developer_backend
+    to: developer_owner.developer_owner
+  - kind: escalates_to
+    from: developer_frontend.developer_frontend
+    to: developer_owner.developer_owner
+  - kind: escalates_to
+    from: developer_implementer.developer_implementer
+    to: developer_owner.developer_owner
+  - kind: collaborates_with
+    from: developer_backend.developer_backend
+    to: developer_frontend.developer_frontend
+  - kind: collaborates_with
+    from: developer_implementer.developer_implementer
+    to: developer_backend.developer_backend
+  - kind: collaborates_with
+    from: developer_implementer.developer_implementer
+    to: developer_frontend.developer_frontend
+
+  # ============================================================================
+  # 6. Quality Assurance, Security, Review & Operations
+  # ============================================================================
+  - kind: escalates_to
+    from: qa_engineer.qa_engineer
+    to: developer_owner.developer_owner
+  - kind: collaborates_with
+    from: qa_engineer.qa_engineer
+    to: review_independent.review_independent
+  - kind: collaborates_with
+    from: qa_engineer.qa_engineer
+    to: devops_engineer.devops_engineer
+  - kind: collaborates_with
+    from: security_analyst.security_analyst
+    to: developer_owner.developer_owner
+  - kind: collaborates_with
+    from: security_analyst.security_analyst
+    to: review_independent.review_independent
+  - kind: delegates_to
+    from: review_independent.review_independent
+    to: developer_owner.developer_owner
+  - kind: collaborates_with
+    from: devops_engineer.devops_engineer
+    to: developer_owner.developer_owner

@@ -1,0 +1,461 @@
+# Loki Stack Configuration
+# Based on Grafana Loki best practices and Kubernetes security hardening
+
+# -- Loki deployment mode: "simple-scalable" (recommended for production) or "monolithic" (dev/small scale)
+deploymentMode: simple-scalable
+
+# -- Namespace for the logging stack
+namespace: logging
+
+# -- Global image configuration
+image:
+  registry: docker.io
+  pullPolicy: IfNotPresent
+
+# -- Service account configuration
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# -- Loki configuration
+loki:
+  # -- Loki component configuration
+  enabled: true
+
+  # -- Image configuration
+  image:
+    repository: grafana/loki
+    tag: "2.9.0"
+
+  # -- Resource requests and limits
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+  # -- Loki configuration
+  config:
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9095
+      log_level: info
+    common:
+      path_prefix: /loki
+      storage:
+        filesystem:
+          chunks_directory: /loki/chunks
+          rules_directory: /loki/rules
+      replication_factor: 1
+      ring:
+        instance_addr: 127.0.0.1
+        kvstore:
+          store: inmemory
+    schema_config:
+      configs:
+        - from: "2024-01-01"
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    limits_config:
+      retention_period: 30d
+      retention_stream:
+        - selector: '{job="debug"}'
+          priority: 1
+          period: 7d
+      cardinality_limit: 100000
+      ingestion_rate_mb: 20
+      ingestion_burst_size_mb: 30
+      per_stream_rate_limit: 10
+      per_stream_rate_limit_burst: 20
+    compactor:
+      working_directory: /loki/boltdb-shipper-compactor
+      shared_store: filesystem
+      compaction_interval: 10m
+      retention_enabled: true
+      retention_delete_delay: 2h
+    ingester:
+      chunk_idle_period: 5m
+      chunk_block_size: 256KB
+      chunk_retain_period: 30s
+      wal:
+        enabled: true
+        dir: /loki/wal
+
+  # -- Persistence configuration
+  persistence:
+    enabled: true
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 50Gi
+
+  # -- Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10000
+    runAsGroup: 10000
+    fsGroup: 10000
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10000
+    runAsGroup: 10000
+    fsGroup: 10000
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Service configuration
+  service:
+    type: ClusterIP
+    port: 3100
+    targetPort: 3100
+    name: http
+
+  # -- Readiness and liveness probes
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: 3100
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  livenessProbe:
+    httpGet:
+      path: /ready
+      port: 3100
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# -- Promtail configuration (log collection agent)
+promtail:
+  enabled: true
+
+  # -- Image configuration
+  image:
+    repository: grafana/promtail
+    tag: "2.9.0"
+
+  # -- Resource requests and limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # -- Promtail configuration
+  config:
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+      log_level: info
+    clients:
+      - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
+        timeout: 10s
+        batchwait: 1s
+        batchsize: 102400
+        backoff_config:
+          min_period: 100ms
+          max_period: 10s
+    positions:
+      filename: /run/promtail/positions.yaml
+    scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_path]
+            action: replace
+            target_label: __path__
+            regex: "(.+)"
+          - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_container]
+            action: replace
+            target_label: container
+            regex: "(.+)"
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            action: replace
+            target_label: app
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+            action: replace
+            target_label: component
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_part_of]
+            action: replace
+            target_label: part_of
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            action: replace
+            target_label: container_name
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+      - job_name: kubernetes-nodes
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+
+  # -- Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10000
+    runAsGroup: 10000
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+  # -- Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10000
+    runAsGroup: 10000
+    fsGroup: 10000
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Volume mounts for log collection
+  volumeMounts:
+    - name: varlog
+      mountPath: /var/log
+      readOnly: true
+    - name: varlibdockercontainers
+      mountPath: /var/lib/docker/containers
+      readOnly: true
+    - name: run
+      mountPath: /run/promtail
+    - name: tmp
+      mountPath: /tmp
+
+  # -- Volumes
+  volumes:
+    - name: varlog
+      hostPath:
+        path: /var/log
+    - name: varlibdockercontainers
+      hostPath:
+        path: /var/lib/docker/containers
+    - name: run
+      emptyDir: {}
+    - name: tmp
+      emptyDir:
+        sizeLimit: 1Gi
+
+# -- Grafana configuration (for dashboard visualization)
+grafana:
+  enabled: true
+
+  # -- Image configuration
+  image:
+    repository: grafana/grafana
+    tag: "10.2.0"
+
+  # -- Resource requests and limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # -- Grafana configuration
+  config:
+    auth:
+      disable_login_form: false
+      disable_signout_menu: true
+    auth.anonymous:
+      enabled: false
+    security:
+      admin_user: admin
+      admin_password: ""  # Set via secret
+    dashboards:
+      default:
+        loki-dashboard:
+          json: |
+            {
+              "dashboard": {
+                "title": "Loki Logs",
+                "panels": [
+                  {
+                    "title": "Log Volume",
+                    "type": "graph",
+                    "targets": [
+                      {
+                        "expr": "sum(rate({job=~\".+\"}[5m])) by (namespace, app)",
+                        "legendFormat": "{{namespace}}/{{app}}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+
+  # -- Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 472
+    runAsGroup: 472
+    fsGroup: 472
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Service configuration
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+
+# -- NetworkPolicy for logging stack
+networkPolicy:
+  enabled: true
+
+  # -- Default deny all ingress/egress
+  defaultDeny:
+    enabled: true
+
+  # -- Allow promtail to scrape logs
+  promtailIngress:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: logging
+
+  # -- Allow Loki to receive logs
+  lokiIngress:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: logging
+
+  # -- Allow Grafana to query Loki
+  grafanaIngress:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: logging
+
+# -- ServiceMonitor for Prometheus scraping
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+  interval: 30s
+  scrapeTimeout: 10s
+
+# -- PodMonitor for Promtail (DaemonSet)
+podMonitor:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+  interval: 30s
+  scrapeTimeout: 10s
+
+# -- PrometheusRule for alerting
+prometheusRule:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+  groups:
+    - name: loki.rules
+      rules:
+        - alert: LokiHighErrorRate
+          expr: |
+            sum(rate(loki_request_duration_seconds_count{status=~"5.."}[5m]))
+            / sum(rate(loki_request_duration_seconds_count[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Loki error rate above 5%"
+            runbook_url: "https://runbooks.example.com/loki-high-error-rate"
+        - alert: LokiHighLatency
+          expr: |
+            histogram_quantile(0.99, sum(rate(loki_request_duration_seconds_bucket[5m])) by (le)) > 5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki p99 latency above 5s"
+            runbook_url: "https://runbooks.example.com/loki-high-latency"
+        - alert: LokiDiskSpaceLow
+          expr: |
+            (loki_boltdb_shipper_active_index_files / loki_boltdb_shipper_total_index_files) > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki disk space running low"
+            runbook_url: "https://runbooks.example.com/loki-disk-space-low"
+
+# -- PodDisruptionBudget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable: ""
+
+# -- Topology spread constraints
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1
+  topologyKey: topology.kubernetes.io/zone
+  whenUnsatisfiable: DoNotSchedule
+
+# -- LimitRange for namespace
+limitRange:
+  enabled: true
+  limits:
+    - type: Container
+      default:
+        memory: 512Mi
+        cpu: 500m
+      defaultRequest:
+        memory: 128Mi
+        cpu: 100m
+      max:
+        memory: 4Gi
+        cpu: "2"
+      min:
+        memory: 32Mi
+        cpu: 10m
+
+# -- ResourceQuota for namespace
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    pods: "50"
+    services: "10"
+    persistentvolumeclaims: "10"

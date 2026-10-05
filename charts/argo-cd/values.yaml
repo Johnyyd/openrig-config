@@ -1,0 +1,446 @@
+# ArgoCD Configuration
+# Based on ArgoCD best practices and Kubernetes security hardening
+
+# -- Namespace for ArgoCD
+namespace: argocd
+
+# -- Global image configuration
+image:
+  registry: docker.io
+  pullPolicy: IfNotPresent
+
+# -- Service account configuration
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# -- ArgoCD Server configuration
+server:
+  # -- Enable ArgoCD server
+  enabled: true
+
+  # -- Image configuration
+  image:
+    repository: argoproj/argocd
+    tag: "v2.9.0"
+
+  # -- Resource requests and limits
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+  # -- Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+  # -- Pod security context
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+    name: http
+    httpsPort: 443
+    httpsTargetPort: 8080
+    httpsName: https
+
+  # -- Ingress configuration
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    hosts:
+      - host: argocd.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: argocd-tls-cert
+        hosts:
+          - argocd.example.com
+
+  # -- Replica count
+  replicas: 1
+
+  # -- Config
+  config:
+    admin:
+      enabled: true
+    resource.customizations: |
+      argoproj.io/Application:
+        health.lua: |
+          hs = {}
+          hs.status = "Progressing"
+          hs.message = ""
+          if obj.status ~= nil then
+            if obj.status.health ~= nil then
+              hs.status = obj.status.health.status
+              if obj.status.health.message ~= nil then
+                hs.message = obj.status.health.message
+              end
+            end
+          end
+          return hs
+
+# -- ArgoCD Repo Server
+repoServer:
+  enabled: true
+  image:
+    repository: argoproj/argocd
+    tag: "v2.9.0"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+  replicas: 1
+
+# -- ArgoCD Application Controller
+applicationController:
+  enabled: true
+  image:
+    repository: argoproj/argocd
+    tag: "v2.9.0"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+  replicas: 1
+  config:
+    processors:
+      operation:
+        parallelism: 10
+      resource:
+        parallelism: 10
+
+# -- ArgoCD Dex Server (for OIDC)
+dex:
+  enabled: true
+  image:
+    repository: ghcr.io/dexidp/dex
+    tag: "v2.37.0"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  config:
+    connectors:
+      - type: github
+        id: github
+        name: GitHub
+        config:
+          clientID: ""
+          clientSecret: ""
+          org: ""
+          teams: []
+
+# -- ArgoCD Redis
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+  persistence:
+    enabled: true
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
+
+# -- ArgoCD ConfigMaps
+configs:
+  # -- ArgoCD CM
+  cm:
+    admin.enabled: "true"
+    timeout.reconciliation: "180s"
+    application.instanceLabelKey: "argocd.argoproj.io/instance"
+    controller.operationProcessors: "10"
+    controller.resourceProcessors: "10"
+    repository.credentials: |
+      - url: github.com
+        username: git
+        password: $GITHUB_TOKEN
+    repositories: |
+      - name: github
+        url: https://github.com
+        type: git
+        username: git
+        password: $GITHUB_TOKEN
+
+  # -- ArgoCD RBAC CM
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:admin, projects, *, *, allow
+      p, role:admin, certificates, *, *, allow
+      p, role:admin, accounts, *, *, allow
+      p, role:admin, gpgkeys, *, *, allow
+      g, admin, role:admin
+      g, dev-team, role:admin
+
+  # -- ArgoCD Projects
+  projects:
+    - name: default
+      description: Default project
+      sourceRepos:
+        - "*"
+      destinations:
+        - namespace: "*"
+          server: "*"
+      clusterResourceWhitelist:
+        - group: ""
+          kind: "*"
+      namespaceResourceWhitelist:
+        - group: ""
+          kind: "*"
+
+# -- NetworkPolicy for ArgoCD
+networkPolicy:
+  enabled: true
+
+  # -- Default deny all ingress/egress
+  defaultDeny:
+    enabled: true
+
+  # -- Allow ArgoCD server ingress
+  serverIngress:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ingress-nginx
+    ports:
+      - protocol: TCP
+        port: 8080
+
+  # -- Allow internal communication
+  internalIngress:
+    enabled: true
+    from:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: argocd
+    ports:
+      - protocol: TCP
+        port: 8080
+      - protocol: TCP
+        port: 8081
+      - protocol: TCP
+        port: 8082
+
+# -- ServiceMonitor for Prometheus scraping
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+  interval: 30s
+  scrapeTimeout: 10s
+
+# -- PrometheusRule for alerting
+prometheusRule:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+  groups:
+    - name: argocd.rules
+      rules:
+        - alert: ArgoCDApplicationSyncFailed
+          expr: |
+            argocd_app_info{sync_status="OutOfSync"} == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "ArgoCD application {{ $labels.name }} is out of sync"
+            runbook_url: "https://runbooks.example.com/argocd-sync-failed"
+        - alert: ArgoCDApplicationDegraded
+          expr: |
+            argocd_app_info{health_status="Degraded"} == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "ArgoCD application {{ $labels.name }} is degraded"
+            runbook_url: "https://runbooks.example.com/argocd-degraded"
+        - alert: ArgoCDServerDown
+          expr: |
+            up{job="argocd-server"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "ArgoCD server is down"
+            runbook_url: "https://runbooks.example.com/argocd-server-down"
+
+# -- PodDisruptionBudget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  maxUnavailable: ""
+
+# -- Topology spread constraints
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1
+  topologyKey: topology.kubernetes.io/zone
+  whenUnsatisfiable: DoNotSchedule
+
+# -- LimitRange for namespace
+limitRange:
+  enabled: true
+  limits:
+    - type: Container
+      default:
+        memory: 512Mi
+        cpu: 500m
+      defaultRequest:
+        memory: 128Mi
+        cpu: 100m
+      max:
+        memory: 2Gi
+        cpu: "2"
+      min:
+        memory: 32Mi
+        cpu: 10m
+
+# -- ResourceQuota for namespace
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    pods: "50"
+    services: "10"
+    persistentvolumeclaims: "10"
+
+# -- ApplicationSet for managing multiple applications
+applicationSet:
+  enabled: true
+  generators:
+    - git:
+        repoURL: https://github.com/org/repo.git
+        revision: main
+        directories:
+          - path: apps/*
+  template:
+    metadata:
+      name: '{{path.basename}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/org/repo.git
+        targetRevision: main
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

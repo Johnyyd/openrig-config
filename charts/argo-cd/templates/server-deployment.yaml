@@ -1,0 +1,107 @@
+{{- if .Values.server.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "argo-cd.fullname" . }}-server
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "argo-cd.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  replicas: {{ .Values.server.replicas }}
+  selector:
+    matchLabels:
+      {{- include "argo-cd.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        {{- include "argo-cd.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: server
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8083"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ include "argo-cd.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.server.podSecurityContext | nindent 8 }}
+      {{- if .Values.topologySpreadConstraints.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "argo-cd.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: server
+      {{- end }}
+      containers:
+        - name: argocd-server
+          image: "{{ .Values.server.image.repository }}:{{ .Values.server.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: https
+              containerPort: 8080
+              protocol: TCP
+            - name: grpc
+              containerPort: 8081
+              protocol: TCP
+            - name: metrics
+              containerPort: 8083
+              protocol: TCP
+          securityContext:
+            {{- toYaml .Values.server.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.server.resources | nindent 12 }}
+          command:
+            - argocd-server
+            - --staticassets
+            - /shared/app
+            - --repo-server
+            - {{ include "argo-cd.fullname" . }}-repo-server:8081
+            - --dex-server
+            - {{ include "argo-cd.fullname" . }}-dex-server:5556
+            - --kubeconfig
+            - /etc/k8s/kubeconfig
+            - --config
+            - /etc/argocd/argocd-cm.yaml
+            - --rbacconfig
+            - /etc/argocd/argocd-rbac-cm.yaml
+          env:
+            - name: ARGOCD_DEX_SERVER
+              value: {{ include "argo-cd.fullname" . }}-dex-server:5556
+            - name: ARGOCD_REPO_SERVER
+              value: {{ include "argo-cd.fullname" . }}-repo-server:8081
+          volumeMounts:
+            - name: config
+              mountPath: /etc/argocd
+            - name: tls
+              mountPath: /etc/argocd/tls
+            - name: kubeconfig
+              mountPath: /etc/k8s
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "argo-cd.fullname" . }}-cm
+        - name: rbac
+          configMap:
+            name: {{ include "argo-cd.fullname" . }}-rbac-cm
+        - name: tls
+          secret:
+            secretName: {{ include "argo-cd.fullname" . }}-tls
+            optional: true
+        - name: kubeconfig
+          secret:
+            secretName: {{ include "argo-cd.fullname" . }}-kubeconfig
+            optional: true
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+{{- end }}

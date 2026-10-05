@@ -1,0 +1,24 @@
+{{- if .Values.loki.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-loki
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "loki-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: loki
+spec:
+  type: {{ .Values.loki.service.type }}
+  selector:
+    {{- include "loki-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: loki
+  ports:
+    - name: {{ .Values.loki.service.name }}
+      port: {{ .Values.loki.service.port }}
+      targetPort: {{ .Values.loki.service.targetPort }}
+      protocol: TCP
+    - name: grpc
+      port: 9095
+      targetPort: 9095
+      protocol: TCP
+{{- end }}
