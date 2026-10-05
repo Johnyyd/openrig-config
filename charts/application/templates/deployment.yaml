@@ -14,8 +14,81 @@ spec:
       labels:
         {{- include "application.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.secretValidation.enabled }}
+      initContainers:
+        - name: secret-validation
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Validating required secrets..."
+              if [ -z "$JWT_SECRET_KEY" ]; then
+                echo "ERROR: JWT_SECRET_KEY environment variable is not set"
+                exit 1
+              fi
+              if [ ${#JWT_SECRET_KEY} -lt {{ .Values.secretValidation.minLength }} ]; then
+                echo "ERROR: JWT_SECRET_KEY must be at least {{ .Values.secretValidation.minLength }} characters"
+                exit 1
+              fi
+              echo "Secret validation passed"
+          envFrom:
+            {{- if .Values.env.jwtSecretKeySecretRef.name }}
+            - secretRef:
+                name: {{ .Values.env.jwtSecretKeySecretRef.name }}
+            {{- else if .Values.secret.enabled }}
+            - secretRef:
+                name: {{ .Values.secret.name }}
+            {{- end }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
             - containerPort: {{ .Values.service.port }}
+          env:
+            {{- if .Values.env.jwtSecretKeySecretRef.name }}
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.env.jwtSecretKeySecretRef.name }}
+                  key: {{ .Values.env.jwtSecretKeySecretRef.key }}
+                  optional: false
+            {{- else if .Values.env.jwtSecretKey }}
+            - name: JWT_SECRET_KEY
+              value: {{ .Values.env.jwtSecretKey | quote }}
+            {{- else if .Values.secret.enabled }}
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secret.name }}
+                  key: JWT_SECRET_KEY
+                  optional: false
+            {{- end }}
+            {{- range $key, $value := .Values.env.additional }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          envFrom:
+            {{- range $key, $value := .Values.envFrom }}
+            - {{ toYaml $value | nindent 12 }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /healthz/ready
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz/live
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          startupProbe:
+            httpGet:
+              path: /healthz/startup
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 30

@@ -12,3 +12,34 @@ image:
 service:
   type: ClusterIP
   port: 80
+
+# -- Environment variables configuration
+env:
+  # -- JWT Secret Key for authentication token signing
+  # This MUST be set via Kubernetes Secret - never hardcode in values
+  # Generate with: openssl rand -base64 32
+  # Required: true (application will fail startup if missing)
+  jwtSecretKey: ""
+  # -- Reference to existing secret containing JWT_SECRET_KEY
+  # If provided, env.jwtSecretKey is ignored
+  jwtSecretKeySecretRef:
+    name: ""
+    key: "JWT_SECRET_KEY"
+  # -- Additional environment variables
+  additional: {}
+
+# -- Secret configuration for JWT_SECRET_KEY
+# This secret will be created if it doesn't exist (via external-secrets or manual creation)
+secret:
+  enabled: true
+  name: "app-secrets"
+  # -- JWT Secret key value (base64 encoded)
+  # For production, use external-secrets operator or sealed-secrets
+  jwtSecretKey: ""
+  # -- Additional secret data
+  additional: {}
+
+# -- Secret validation configuration
+secretValidation:
+  enabled: true
+  minLength: 32
