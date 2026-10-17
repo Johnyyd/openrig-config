@@ -13,6 +13,39 @@ service:
   type: ClusterIP
   port: 80
 
+# -- Horizontal Pod Autoscaler configuration
+# Enable automatic scaling based on CPU/utilization metrics
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # -- Alternative: target memory utilization
+  # targetMemoryUtilizationPercentage: 80
+
+# -- CronJob configuration for scheduled tasks
+# Enable periodic jobs for maintenance, backups, etc.
+cronJobs:
+  enabled: false
+  # -- Example backup job
+  backup:
+    schedule: "0 2 * * *"  # Every day at 2 AM
+    image:
+      repository: alpine
+      tag: "latest"
+    command: ["/bin/sh", "-c"]
+    args: ["echo \"Backup started at $(date)\" && sleep 300"]  # 5 minute job
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    # -- Success and failure history limits
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 5
+
 # -- Environment variables configuration
 env:
   # -- JWT Secret Key for authentication token signing
@@ -43,3 +76,48 @@ secret:
 secretValidation:
   enabled: true
   minLength: 32
+
+# -- NetworkPolicy configuration for network security
+# Enable network isolation and traffic controls
+networkPolicy:
+  enabled: false
+  # -- Default deny all ingress/egress (recommended for security)
+  defaultDeny:
+    enabled: true
+  # -- Allow incoming traffic to the application service
+  ingress:
+    enabled: true
+    from:
+      # -- Allow from monitoring namespace for scraping
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: monitoring
+      # -- Allow from ingress-nginx namespace (adjust as needed)
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ingress-nginx
+    ports:
+      - protocol: TCP
+        port: 80
+  # -- Allow outgoing traffic for dependencies
+  egress:
+    enabled: true
+    to:
+      # -- Allow DNS resolution
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      # -- Allow to monitoring namespace for metrics
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: monitoring
+    ports:
+      - protocol: TCP
+        port: 53  # DNS
+      - protocol: TCP
+        port: 80  # HTTP
+      - protocol: TCP
+        port: 443 # HTTPS

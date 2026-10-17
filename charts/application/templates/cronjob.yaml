@@ -1,0 +1,41 @@
+{{- if .Values.cronJobs.enabled }}
+{{- range $name, $job := .Values.cronJobs }}
+{{- if $job.schedule }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "application.fullname" }}-{{ $name }}
+  labels:
+    {{- include "application.labels" . | nindent 4 }}
+spec:
+  schedule: "{{ $job.schedule }}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ $job.successfulJobsHistoryLimit | default 3 }}
+  failedJobsHistoryLimit: {{ $job.failedJobsHistoryLimit | default 5 }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: {{ $name }}
+              image: "{{ $job.image.repository }}:{{ $job.image.tag }}"
+              command: {{ $job.command | toJson }}
+              args: {{ $job.args | toJson }}
+              resources:
+                requests:
+                  cpu: {{ $job.resources.requests.cpu }}
+                  memory: {{ $job.resources.requests.memory }}
+                limits:
+                  cpu: {{ $job.resources.limits.cpu }}
+                  memory: {{ $job.resources.limits.memory }}
+              {{- with $job.env }}
+              env:
+                {{- range $key, $value := . }}
+                - name: {{ $key }}
+                  value: {{ $value | quote }}
+                {{- end }}
+              {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
