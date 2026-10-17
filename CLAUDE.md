@@ -186,6 +186,43 @@ onboarding steps plus `onboarding-width` are the complete public default mental 
 `forming-an-openrig-mental-model` or
 `openrig-operating-model` at their named trigger moments rather than copying their content elsewhere.
 
+## DevOps Infrastructure Available
+
+A foundational DevOps infrastructure has been implemented and is available for team use:
+
+### Observability Stack
+- **Logging**: Grafana Loki + Promtail + Grafana (charts/loki/)
+- **Tracing**: Grafana Tempo + OpenTelemetry Collector (charts/tempo/)
+- **Metrics**: Built-in Prometheus endpoints in all components
+- **Alerting**: Symptom-based alerts with actionable runbook URLs
+- **Visualization**: Pre-configured Grafana dashboards
+
+### GitOps & CI/CD
+- **ArgoCD**: GitOps continuous delivery system (charts/argo-cd/)
+- **CI/CD Pipeline**: GitHub Actions workflow (.github/workflows/ci-cd.yaml) with:
+  - Build stage: Docker image building with multi-platform support
+  - Test stage: Unit, integration, and E2E tests
+  - Security stage: SAST, SCA, container scanning, IaC scanning, secret scanning
+  - Deploy stage: ArgoCD-based deployments
+  - Notifications: Slack, email, GitHub notifications
+  - Environment management: Separate environments with approval gates
+
+### Application Standardization
+- **Standardized Helm chart**: For microservice deployments (charts/application/)
+- **Features**: HPA, CronJob, NetworkPolicy, ServiceMonitor, proper resource management
+
+### Security Hardening
+- Pod Security Admission "restricted" profile
+- Non-root containers with read-only root filesystems
+- Dropped Linux capabilities
+- Resource limits and requests
+- NetworkPolicy with default-deny posture
+- Service accounts with limited permissions
+- Secrets via Kubernetes secrets
+- Image vulnerability scanning in CI/CD
+
+This infrastructure provides a foundation for teams to deploy and operate applications with observability, security, and automated delivery.
+
 <!-- END OpenRig MANAGED BLOCK: openrig-onboarding-02.md -->
 
 
